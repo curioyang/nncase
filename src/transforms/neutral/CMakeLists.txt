@@ -39,5 +39,4 @@ target_sources(transforms PRIVATE
     pre_process_setting.cpp
     post_process_transform.cpp
     optimize_resnet50.cpp
-    fold_binary_into_conv.cpp
     )
