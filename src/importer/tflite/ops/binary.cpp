@@ -37,7 +37,7 @@ DEFINE_TFLITE_LOWER(FLOOR_DIV)
     auto &output = get_tensor(op.outputs(), 0);
 
     auto div = graph_.emplace<binary>(binary_div, get_shape(input_a.shape()), get_shape(input_b.shape()), value_range<float>::full());
-    div->name(std::string(get_tensor(op.outputs(), 0).name()->string_view()) + "/binary");
+    div->name(std::string(get_tensor(op.outputs(), 0).name()->string_view()) + "/binary_div");
 
     // input_a dequantize
     if (input_a.type() != tflite::TensorType_FLOAT32)
@@ -68,7 +68,7 @@ DEFINE_TFLITE_LOWER(FLOOR_DIV)
     }
 
     auto floor = graph_.emplace<unary>(unary_floor, div->output().shape());
-    floor->name(std::string(get_tensor(op.outputs(), 0).name()->string_view()) + "/unary");
+    floor->name(std::string(get_tensor(op.outputs(), 0).name()->string_view()) + "/unary_floor");
     floor->input().connect(div->output());
 
     // output quantize
@@ -123,7 +123,7 @@ void tflite_importer::convert_binary(const tflite::Operator &op, binary_op_t bin
     auto &output = get_tensor(op.outputs(), 0);
 
     auto add = graph_.emplace<binary>(binary_op, get_shape(input_a.shape()), get_shape(input_b.shape()), to_float_clamp_range(activation));
-    add->name(std::string(get_tensor(op.outputs(), 0).name()->string_view()) + "/binary");
+    add->name(std::string(get_tensor(op.outputs(), 0).name()->string_view()) + "/binary_" + to_string(binary_op));
 
     dequantize *input_a_dequant, *input_b_dequant;
     quantize *output_quant;
