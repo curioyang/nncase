@@ -17,7 +17,7 @@
 
 namespace nncase::ir::transforms
 {
-class NNCASE_API fold_mul_add_to_dw_transform : public transform
+class NNCASE_API split_binary_act_transform : public transform
 {
 public:
     void process(transform_context &context) override;
