@@ -49,6 +49,7 @@
 | LpNormalization | ✅ |
 | LeakyRelu | ✅ |
 | Log | ✅ |
+| LogSoftmax | ✅ |
 | LRN | ✅ |
 | MatMul | ✅ |
 | MaxPool | ✅ |
@@ -80,9 +81,11 @@
 | Round | ✅ |
 | Selu | ✅ |
 | Shape | ✅ |
+| Sign | ✅ |
 | Sin | ✅ |
 | Sinh | ✅ |
 | Sigmoid | ✅ |
+| Size | ✅ |
 | Slice | ✅ |
 | Softmax | ✅ |
 | Softplus | ✅ |

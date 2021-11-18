@@ -18,9 +18,9 @@ import onnx
 from onnx import helper
 from onnx import AttributeProto, TensorProto, GraphProto
 from onnx_test_runner import OnnxTestRunner
+import numpy as np
 
-
-def _make_module(in_shape, axis, op_version):
+def _make_module(in_shape):
     inputs = []
     outputs = []
     initializers = []
@@ -32,66 +32,54 @@ def _make_module(in_shape, axis, op_version):
     inputs.append('input')
 
     # output
-    output = helper.make_tensor_value_info('output', TensorProto.FLOAT, in_shape)
-    outputs.append('output')
+    abs_output = helper.make_tensor_value_info('abs_output', TensorProto.FLOAT, in_shape)
+    outputs.append(abs_output)
+    size_output = helper.make_tensor_value_info('size_output', TensorProto.INT64, [])
+    outputs.append(size_output)
 
-    # axis
-    if axis is not None:
-        attributes_dict['axis'] = axis
+    # abs
+    abs = onnx.helper.make_node(
+        'Abs',
+        inputs=['input'],
+        outputs=['abs_output'],
+    )
+    nodes.append(abs)
 
-    # Softmax node
-    node = onnx.helper.make_node(
-        'Softmax',
+    # Size node
+    size = onnx.helper.make_node(
+        'Size',
         inputs=inputs,
-        outputs=outputs,
+        outputs=['size_output'],
         **attributes_dict
     )
-    nodes.append(node)
+    nodes.append(size)
 
     graph_def = helper.make_graph(
         nodes,
         'test-model',
         [input],
-        [output],
+        outputs,
         initializer=initializers)
 
-    op = onnx.OperatorSetIdProto()
-    op.version = op_version
-    model_def = helper.make_model(graph_def, producer_name='onnx', opset_imports=[op])
+    model_def = helper.make_model(graph_def, producer_name='onnx')
 
     return model_def
 
 
 in_shapes = [
+    [16],
+    [16, 16],
+    [3, 16, 16],
     [1, 3, 16, 16],
 ]
 
-axes = [
-    None,
-    1,
-    2,
-    3,
-    -1,
-    -2,
-    -3,
-]
-
-op_versions = [
-    1,
-    11,
-    13
-]
-
 @pytest.mark.parametrize('in_shape', in_shapes)
-@pytest.mark.parametrize('axis', axes)
-@pytest.mark.parametrize('op_version', op_versions)
-def test_softmax(in_shape, axis, op_version, request):
-    if (op_version in [1, 11] and axis in [None, 1, -3]) or op_version == 13:
-        model_def = _make_module(in_shape, axis, op_version)
+def test_size(in_shape, request):
+    model_def = _make_module(in_shape)
 
-        runner = OnnxTestRunner(request.node.name)
-        model_file = runner.from_onnx_helper(model_def)
-        runner.run(model_file)
+    runner = OnnxTestRunner(request.node.name)
+    model_file = runner.from_onnx_helper(model_def)
+    runner.run(model_file)
 
 if __name__ == "__main__":
-    pytest.main(['-vv', 'test_softmax.py'])
+    pytest.main(['-vv', 'test_size.py'])
