@@ -21,20 +21,6 @@
 
 namespace nncase
 {
-
-inline std::string to_string(const binary_op_t op_name)
-{
-    switch (op_name)
-    {
-    case binary_add:
-        return "add";
-    case binary_mul:
-        return "mul";
-    default:
-        return "unknown";
-    }
-}
-
 inline std::string to_string(const padding &value)
 {
     return "{" + std::to_string(value.before) + ", " + std::to_string(value.after) + "}";
