@@ -353,7 +353,6 @@ private:
     {
         target_ = plugin_loader::create_target(type);
         target_->options().is_fpga = compile_options_.is_fpga;
-        target_->options().tcu_num = compile_options_.tcu_num;
         target_->register_evaluator_ops();
     }
 
@@ -366,8 +365,8 @@ private:
     void post_process(ir::graph &graph, compile_options &cmp_options)
     {
         using namespace ir::transforms;
-        run_passes("pre_process", graph, [&]([[maybe_unused]] const module_type_t &module_type, ir::transforms::pass_manager &pmgr) { pmgr.add_pass<post_process_transform>(
-                                                                                                                                          cmp_options.output_layout, cmp_options.output_type, real_outlayout_); });
+        run_passes("post_process", graph, [&]([[maybe_unused]] const module_type_t &module_type, ir::transforms::pass_manager &pmgr) { pmgr.add_pass<post_process_transform>(
+                                                                                                                                           cmp_options.output_layout, cmp_options.output_type, real_outlayout_); });
     }
 
     void optimize_target_independent(ir::graph &graph)

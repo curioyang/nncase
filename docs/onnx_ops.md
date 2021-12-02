@@ -73,11 +73,13 @@
 | ReduceMax | ✅ |
 | ReduceMean | ✅ |
 | ReduceMin | ✅ |
+| ReduceProd | ✅ |
 | ReduceSum | ✅ |
 | ReduceSumSquare | ✅ |
 | Relu | ✅ |
 | Reshape | ✅ |
 | Resize | ✅ |
+| ReverseSequence | ✅ |
 | Round | ✅ |
 | Selu | ✅ |
 | Shape | ✅ |
@@ -97,6 +99,8 @@
 | Sub | ✅ |
 | Sum | ✅ |
 | Tanh | ✅ |
+| Tile | ✅ |
 | Transpose | ✅ |
 | Upsample | ✅ |
 | Unsqueeze | ✅ |
+| Where | ✅ |

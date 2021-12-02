@@ -18,6 +18,7 @@
 #include <nncase/targets/neutral_target.h>
 #include <nncase/transforms/neutral/add_quant_checkpoints.h>
 #include <nncase/transforms/neutral/binary_motion.h>
+#include <nncase/transforms/neutral/bitcast_motion.h>
 #include <nncase/transforms/neutral/dequantize_motion.h>
 #include <nncase/transforms/neutral/fold_bitcast.h>
 #include <nncase/transforms/neutral/fold_constant.h>
@@ -120,6 +121,7 @@ void neutral_target::add_default_transforms(ir::transforms::transform_pass &pass
     pass.emplace<transpose_concat_motion_transform>();
     pass.emplace<transpose_pad_motion_transform>();
     pass.emplace<transpose_clamp_motion_transform>();
+    pass.emplace<bitcast_clamp_motion_transform>();
 
     pass.emplace<fuse_clamp_conv2d_transform>();
     pass.emplace<fuse_clamp_conv2d_transpose_transform>();
@@ -183,6 +185,7 @@ void neutral_target::register_target_independent_passes(const module_type_t &typ
         //lstm_transform
         {
             transform_pass p("lstm_transform");
+            p.emplace<fold_constant_transform>();
             p.emplace<lstm_transform>();
             pass_mgr.add_pass(std::move(p));
         }
