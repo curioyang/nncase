@@ -138,3 +138,160 @@ void split_binary_act_transform::process(transform_context &context)
         in->connect(new_binary_add->output());
     }
 }
+
+bool merge_binary_b_into_conv_transform::on_try_match(node &node, transform_context &context)
+{
+    // constant *mul_const, *add_const;
+    constant *weights = nullptr, *bias = nullptr;
+    if (auto b_mul = node_cast<binary>(node))
+    {
+        if (b_mul->binary_op() == binary_mul)
+        {
+            if (try_get_direct_parent<conv2d>(*b_mul, 0) || try_get_direct_parent<conv2d>(*b_mul, 1))
+                return false;
+            if (try_get_direct_parent<binary>(*b_mul, 0))
+            {
+                if (auto b_add = try_get_direct_child<binary>(*b_mul))
+                {
+                    if (b_add->output().connections().size() == 1 && b_add->output().connections()[0]->owner().runtime_opcode() == op_conv2d)
+                    {
+                        if (b_add->binary_op() == binary_add && b_add->fused_activation() == value_range<float>::full())
+                        {
+                            if (auto mul_const = try_get_direct_parent<constant>(*b_mul, 1))
+                            {
+                                context.inputs.emplace_back(&b_mul->input_a());
+                                // context.inputs.emplace_back(&b_mul->input_b());
+                                context.matched_nodes.emplace_back(mul_const);
+                            }
+                            else if (auto mul_const = try_get_direct_parent<constant>(*b_mul, 0))
+                            {
+                                context.inputs.emplace_back(&b_mul->input_b());
+                                // context.inputs.emplace_back(&b_mul->input_a());
+                                context.matched_nodes.emplace_back(mul_const);
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                            if (auto add_const = try_get_direct_parent<constant>(*b_add, 1))
+                            {
+                                // context.inputs.emplace_back(&b_mul->input_b());
+                                context.matched_nodes.emplace_back(add_const);
+                            }
+                            else if (auto add_const = try_get_direct_parent<constant>(*b_add, 0))
+                            {
+                                // context.inputs.emplace_back(&b_mul->input_a());
+                                context.matched_nodes.emplace_back(add_const);
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                            if (auto conv = try_get_direct_child<conv2d>(*b_add))
+                            {
+                                if ((weights = try_get_direct_parent<constant>(*conv, 1))
+                                    && (bias = try_get_direct_parent<constant>(*conv, 2)))
+                                {
+                                    context.matched_nodes.emplace_back(weights);
+                                    context.matched_nodes.emplace_back(bias);
+                                    context.matched_nodes.emplace_back(conv);
+                                }
+                                context.outputs.emplace_back(&conv->output());
+                            }
+
+                            // context.matched_nodes.emplace_back(b_mul);
+                            // context.matched_nodes.emplace_back(b_add);
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void merge_binary_b_into_conv_transform::process(transform_context &context)
+{
+    auto &output = *context.inputs[0]->connection();
+    auto inputs = context.outputs[0]->connections();
+    auto &const_mul = static_cast<constant &>(*context.matched_nodes[0]);
+    auto &const_add = static_cast<constant &>(*context.matched_nodes[1]);
+    auto &weights = static_cast<constant &>(*context.matched_nodes[2]);
+    auto &bias = static_cast<constant &>(*context.matched_nodes[3]);
+    auto &conv = static_cast<conv2d &>(*context.matched_nodes[4]);
+
+    // std::vector<std::byte> mul_const_byte { const_mul.data().begin(), const_mul.data().end() };
+    // std::vector<std::byte> add_const_byte { const_add.data().begin(), const_add.data().end() };
+    std::vector<std::byte> weights_byte { weights.data().begin(), weights.data().end() };
+    // std::vector<std::byte> bias_byte { bias.data().begin(), bias.data().end() };
+
+    // auto mul_const = ToFloats(mul_const_byte);
+    // auto add_const = ToFloats(add_const_byte);
+    auto weights_const = ToFloats(weights_byte);
+    // auto bias_const = ToFloats(bias_byte);
+
+    // for (size_t cout = 0; cout < weights.output().shape()[0]; cout++)
+    // {
+    //     for (size_t cin = 0; cin < weights.output().shape()[1]; cin++)
+    //     {
+    //         for (size_t h = 0; h < weights.output().shape()[2]; h++)
+    //         {
+    //             for (size_t w = 0; w < weights.output().shape()[3]; w++)
+    //             {
+    //                 weights_const[cout * weights.output().shape()[0] + cin * weights.output().shape()[1] + h * weights.output().shape()[2] + w] *= mul_const[cin];
+    //             }
+    //         }
+    //     }
+    // }
+    auto bitc_mul_const = context.graph.emplace<bitcast>(dt_float32, const_mul.output().shape(), shape_t { 1, const_mul.output().shape()[0], 1, 1 });
+    bitc_mul_const->name(conv.name() + "bitc_mul_const");
+    auto new_weights = context.graph.emplace<binary>(binary_mul, weights.output().shape(), bitc_mul_const->output().shape(), value_range<float>::full());
+    new_weights->name(conv.name() + "binary_mul_weights");
+    bitc_mul_const->input().connect(const_mul.output());
+    new_weights->input_a().connect(weights.output());
+    new_weights->input_b().connect(bitc_mul_const->output());
+
+    auto bitc_add_const = context.graph.emplace<bitcast>(dt_float32, const_add.output().shape(), shape_t { 1, const_add.output().shape()[0], 1, 1 });
+    bitc_add_const->name(conv.name() + "bitc_add_const");
+    bitc_add_const->input().connect(const_add.output());
+
+    auto add_weights = context.graph.emplace<constant>(dt_float32, weights.output().shape(), weights_const);
+    add_weights->name(conv.name() + "add_weights");
+
+    std::vector<float> zeros_const(weights.output().shape()[0], 0.f);
+    auto add_conv_bias = context.graph.emplace<constant>(dt_float32, shape_t { weights.output().shape()[0] }, zeros_const);
+    add_conv_bias->name(conv.name() + "add_conv_bias");
+
+    auto add_conv = context.graph.emplace<conv2d>(bitc_add_const->output().shape(), add_weights->output().shape(), conv.groups(),
+        conv.padding_h(), conv.padding_w(), conv.stride_h(), conv.stride_w(), conv.dilation_h(), conv.dilation_w(), value_range<float>::full());
+    add_conv->name(conv.name() + "add_conv_weights");
+    add_conv->input().connect(bitc_add_const->output());
+    add_conv->weights().connect(add_weights->output());
+    add_conv->bias().connect(add_conv_bias->output());
+
+    auto bitc_bias = context.graph.emplace<bitcast>(dt_float32, bias.output().shape(), shape_t { 1, bias.output().shape()[0], 1, 1 });
+    bitc_bias->name(conv.name() + "bitc_bias");
+    bitc_bias->input().connect(bias.output());
+
+    auto add_bias = context.graph.emplace<binary>(binary_add, add_conv->output().shape(), bitc_bias->output().shape(), value_range<float>::full());
+    add_bias->name(conv.name() + "add_bias");
+    add_bias->input_a().connect(add_conv->output());
+    add_bias->input_b().connect(bitc_bias->output());
+
+    auto bitc_post = context.graph.emplace<bitcast>(dt_float32, add_bias->output().shape(), shape_t { bias.output().shape()[0] });
+    bitc_post->name(conv.name() + "bitc_post");
+    bitc_post->input().connect(add_bias->output());
+
+    auto new_conv = context.graph.emplace<conv2d>(output.shape(), new_weights->output().shape(), conv.groups(),
+        conv.padding_h(), conv.padding_w(), conv.stride_h(), conv.stride_w(), conv.dilation_h(), conv.dilation_w(), conv.fused_activation());
+
+    new_conv->bias().connect(bitc_post->output());
+    new_conv->weights().connect(new_weights->output());
+    new_conv->input().connect(output);
+    new_conv->name(conv.name() + "new_conv");
+    for (auto &in : dup(inputs))
+    {
+        in->connect(new_conv->output());
+    }
+}
