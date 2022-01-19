@@ -290,8 +290,7 @@ private:
                             outputs_a.emplace(in->connection());
                         for (auto in : itb->region_inputs)
                             outputs_b.emplace(in->connection());
-                        if (std::all_of(outputs_a.begin(), outputs_a.end(), [&](output_connector *out) { return outputs_b.contains(out); })
-                            && std::all_of(outputs_b.begin(), outputs_b.end(), [&](output_connector *out) { return outputs_a.contains(out); }))
+                        if (std::all_of(outputs_a.begin(), outputs_a.end(), [&](output_connector *out) { return outputs_b.contains(out); }))
                             to_be_merge.emplace_back(itb);
                     }
                 }
