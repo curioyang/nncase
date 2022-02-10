@@ -9,10 +9,12 @@ set(SRCS batch_to_space.cpp
          copy.cpp
          cumsum.cpp
          dequantize.cpp
+         equal.cpp
          gather.cpp
          gather_nd.cpp
          hardmax.cpp
          lut1d.cpp
+         matmul.cpp
          nnil.cpp
          onehot.cpp
          pad.cpp
@@ -23,6 +25,8 @@ set(SRCS batch_to_space.cpp
          reduce_prod.cpp
          reduce_window.cpp
          resize_image.cpp
+         roi_align.cpp
+         sigmoid.cpp
          slice.cpp
          ternary.cpp
          topk.cpp

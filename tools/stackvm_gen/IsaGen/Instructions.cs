@@ -155,6 +155,7 @@ namespace IsaGen
         COPY,
         CUMSUM,
         DEQUANTIZE,
+        EQUAL,
         GATHER,
         GATHER_ND,
         HARDMAX,
@@ -171,6 +172,8 @@ namespace IsaGen
         REDUCE_PROD,
         REDUCE_WINDOW2D,
         RESIZE_IMAGE,
+        ROI_ALIGN,
+        SIGMOID,
         SLICE,
         SOFTMAX,
         SPACE_TO_BATCH,
@@ -242,6 +245,13 @@ namespace IsaGen
     [EnumName("unary_op_t")]
     [Browsable(false)]
     public enum UnaryOp
+    {
+    }
+
+   [BitLength(8)]
+    [EnumName("roi_align_mode_t")]
+    [Browsable(false)]
+    public enum RoiAlignMode
     {
     }
 
@@ -1376,6 +1386,38 @@ namespace IsaGen
             public byte RstrideDest { get; set; }
         }
 
+        [DisplayName("TENSOR.EQUAL")]
+        [Category("Tensor Instructions")]
+        [Description("Equal")]
+        public class EqualInstruction : TensorInstruction
+        {
+            public override TensorFunction Function => TensorFunction.EQUAL;
+
+            [DisplayName("datatype")]
+            [Description("Datatype")]
+            public DataType DataType { get; set; }
+
+            [DisplayName("rshape_src1")]
+            [Description("Source1 shape register")]
+            public byte RshapeSrc1 { get; set; }
+
+            [DisplayName("rstride_src1")]
+            [Description("Source1 stride register")]
+            public byte RstrideSrc1 { get; set; }
+
+            [DisplayName("rshape_src2")]
+            [Description("Source2 shape register")]
+            public byte RshapeSrc2 { get; set; }
+
+            [DisplayName("rstride_src2")]
+            [Description("Source2 stride register")]
+            public byte RstrideSrc2 { get; set; }
+
+            [DisplayName("rstride_dest")]
+            [Description("Dest stride register")]
+            public byte RstrideDest { get; set; }
+        }
+
         [DisplayName("TENSOR.GATHER")]
         [Category("Tensor Instructions")]
         [Description("Gather")]
@@ -1498,6 +1540,30 @@ namespace IsaGen
             [DisplayName("table_len")]
             [Description("Table length")]
             public ushort TableLength { get; set; }
+        }
+
+        [DisplayName("TENSOR.MATMUL")]
+        [Category("Tensor Instructions")]
+        [Description("Matmul")]
+        public class MatmulInstruction : TensorInstruction
+        {
+            public override TensorFunction Function => TensorFunction.MATMUL;
+
+            [DisplayName("rshape_src1")]
+            [Description("Source1 shape register")]
+            public byte RshapeSrc1 { get; set; }
+
+            [DisplayName("rshape_src2")]
+            [Description("Source2 shape register")]
+            public byte RshapeSrc2 { get; set; }
+
+            [DisplayName("fused_clamp_low")]
+            [Description("FusedClampLow")]
+            public float FusedClampLow { get; set; }
+
+            [DisplayName("fused_clamp_high")]
+            [Description("FusedClampHigh")]
+            public float FusedClampHigh { get; set; }
         }
 
         [DisplayName("TENSOR.ONEHOT")]
@@ -1850,6 +1916,62 @@ namespace IsaGen
             [DisplayName("image_resize_mode")]
             [Description("Image Resize Mode")]
             public ImageResizeMode ImageResizeMode { get; set; }
+        }
+
+        [DisplayName("TENSOR.ROI_ALIGN")]
+        [Category("Tensor Instructions")]
+        [Description("RoiAlign")]
+        public class RoiAlignInstruction : TensorInstruction
+        {
+            public override TensorFunction Function => TensorFunction.ROI_ALIGN;
+
+            [DisplayName("datatype")]
+            [Description("Datatype")]
+            public DataType DataType { get; set; }
+
+            [DisplayName("rshape_src")]
+            [Description("Source shape register")]
+            public byte RshapeSrc { get; set; }
+
+            [DisplayName("rshape_dest")]
+            [Description("Dest shape register")]
+            public byte RshapeDest { get; set; }
+
+            [DisplayName("mode")]
+            [Description("Mode")]
+            public RoiAlignMode mode { get; set; }
+
+            [DisplayName("spatial_scale")]
+            [Description("Spatial Scale")]
+            public float SpatialScale { get; set; }
+
+            [DisplayName("sampling_ratio")]
+            [Description("Sampling Ratio")]
+            public long SamplingRatio { get; set; }
+        }
+
+        [DisplayName("TENSOR.SIGMOID")]
+        [Category("Tensor Instructions")]
+        [Description("Sigmoid")]
+        public class SigmoidInstruction : TensorInstruction
+        {
+            public override TensorFunction Function => TensorFunction.SIGMOID;
+
+            [DisplayName("datatype")]
+            [Description("Datatype")]
+            public DataType DataType { get; set; }
+
+            [DisplayName("rshape_src")]
+            [Description("Source shape register")]
+            public byte RshapeSrc { get; set; }
+
+            [DisplayName("rstride_src")]
+            [Description("Source stride register")]
+            public byte RstrideSrc { get; set; }
+
+            [DisplayName("rstride_dest")]
+            [Description("Dest stride register")]
+            public byte RstrideDest { get; set; }
         }
 
         [DisplayName("TENSOR.SLICE")]

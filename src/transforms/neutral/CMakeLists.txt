@@ -41,4 +41,6 @@ target_sources(transforms PRIVATE
     pre_process_setting.cpp
     post_process_transform.cpp
     optimize_resnet50.cpp
+    split_sigmoid.cpp
+    fold_1x1_conv2d_depthwise_conv2d.cpp
     )

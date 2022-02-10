@@ -26,6 +26,7 @@
 #include <nncase/ir/ops/convert.h>
 #include <nncase/ir/ops/cumsum.h>
 #include <nncase/ir/ops/dequantize.h>
+#include <nncase/ir/ops/equal.h>
 #include <nncase/ir/ops/fused_unary.h>
 #include <nncase/ir/ops/gather.h>
 #include <nncase/ir/ops/gather_nd.h>
@@ -41,6 +42,8 @@
 #include <nncase/ir/ops/reduce_prod.h>
 #include <nncase/ir/ops/reduce_window2d.h>
 #include <nncase/ir/ops/resize_image.h>
+#include <nncase/ir/ops/roi_align.h>
+#include <nncase/ir/ops/sigmoid.h>
 #include <nncase/ir/ops/slice.h>
 #include <nncase/ir/ops/table_lookup.h>
 #include <nncase/ir/ops/ternary.h>
@@ -110,16 +113,34 @@ void register_neutral_evaluators()
     register_evaluator(op_binary, [](ir::node &node, function_evaluate_context &context) {
         auto &rnode = static_cast<binary &>(node);
 
-        assert(rnode.input_a().type() == dt_float32);
-        assert(rnode.input_b().type() == dt_float32);
-
         auto input_a = context.memory_at(rnode.input_a());
         auto input_b = context.memory_at(rnode.input_b());
         auto output = context.memory_at(rnode.output());
-        kernels::binary(rnode.binary_op(), input_a.buffer().as_span<float>().data(), input_b.buffer().as_span<float>().data(),
-            output.buffer().as_span<float>().data(), input_a.shape(), input_a.strides(), input_b.shape(), input_b.strides(), output.strides(),
-            rnode.fused_activation())
-            .unwrap_or_throw();
+
+        auto input_type = rnode.input_a().type();
+        switch (input_type)
+        {
+        case dt_float32:
+            kernels::binary(rnode.binary_op(), input_a.buffer().as_span<float>().data(), input_b.buffer().as_span<float>().data(),
+                output.buffer().as_span<float>().data(), input_a.shape(), input_a.strides(), input_b.shape(), input_b.strides(), output.strides(),
+                rnode.fused_activation())
+                .unwrap_or_throw();
+            break;
+        case dt_int32:
+            kernels::binary(rnode.binary_op(), input_a.buffer().as_span<int32_t>().data(), input_b.buffer().as_span<int32_t>().data(),
+                output.buffer().as_span<int32_t>().data(), input_a.shape(), input_a.strides(), input_b.shape(), input_b.strides(), output.strides(),
+                rnode.fused_activation())
+                .unwrap_or_throw();
+            break;
+        case dt_int64:
+            kernels::binary(rnode.binary_op(), input_a.buffer().as_span<int64_t>().data(), input_b.buffer().as_span<int64_t>().data(),
+                output.buffer().as_span<int64_t>().data(), input_a.shape(), input_a.strides(), input_b.shape(), input_b.strides(), output.strides(),
+                rnode.fused_activation())
+                .unwrap_or_throw();
+            break;
+        default:
+            std::cerr << "unsupported dtype for binary: " + std::string(datatype_names(input_type));
+        }
     });
 
     register_evaluator(op_broadcast, [](ir::node &node, function_evaluate_context &context) {
@@ -206,6 +227,39 @@ void register_neutral_evaluators()
             assert(false && "not supported type!");
 
 #undef DEQUANTIZE
+        }
+    });
+
+    register_evaluator(op_equal, [](ir::node &node, function_evaluate_context &context) {
+        auto &rnode = static_cast<equal &>(node);
+
+        auto input_a = context.memory_at(rnode.input_a());
+        auto input_b = context.memory_at(rnode.input_b());
+        auto output = context.memory_at(rnode.output());
+
+        auto input_type = rnode.input_a().type();
+        switch (input_type)
+        {
+        case dt_uint8:
+            kernels::equal(input_a.buffer().as_span<uint8_t>().data(), input_b.buffer().as_span<uint8_t>().data(),
+                output.buffer().as_span<bool>().data(), input_a.shape(), input_a.strides(),
+                input_b.shape(), input_b.strides(), output.strides())
+                .unwrap_or_throw();
+            break;
+        case dt_float32:
+            kernels::equal(input_a.buffer().as_span<float>().data(), input_b.buffer().as_span<float>().data(),
+                output.buffer().as_span<bool>().data(), input_a.shape(), input_a.strides(),
+                input_b.shape(), input_b.strides(), output.strides())
+                .unwrap_or_throw();
+            break;
+        case dt_int64:
+            kernels::equal(input_a.buffer().as_span<int64_t>().data(), input_b.buffer().as_span<int64_t>().data(),
+                output.buffer().as_span<bool>().data(), input_a.shape(), input_a.strides(),
+                input_b.shape(), input_b.strides(), output.strides())
+                .unwrap_or_throw();
+            break;
+        default:
+            std::cerr << "unsupported dtype for equal: " + std::string(datatype_names(input_type));
         }
     });
 
@@ -379,6 +433,47 @@ void register_neutral_evaluators()
         }
     });
 
+    register_evaluator(op_roi_align, [](ir::node &node, function_evaluate_context &context) {
+        auto &rnode = static_cast<roi_align &>(node);
+
+        auto input = context.memory_at(rnode.input());
+        auto rois = context.memory_at(rnode.rois());
+        auto batch_indices = context.memory_at(rnode.batch_indices());
+        auto output = context.memory_at(rnode.output());
+
+        auto input_type = rnode.input().type();
+        switch (input_type)
+        {
+        case dt_float32:
+            kernels::roi_align(input.buffer().as_span<float>().data(), rois.buffer().as_span<float>().data(),
+                batch_indices.buffer().as_span<int64_t>().data(), output.buffer().as_span<float>().data(), input.shape(), output.shape(),
+                rnode.mode(), rnode.spatial_scale(), rnode.sampling_ratio())
+                .unwrap_or_throw();
+            break;
+        default:
+            std::cerr << "unsupported dtype for roi_align: " + std::string(datatype_names(input_type));
+        }
+    });
+
+    register_evaluator(op_sigmoid, [](ir::node &node, function_evaluate_context &context) {
+        auto &rnode = static_cast<sigmoid &>(node);
+
+        auto input = context.memory_at(rnode.input());
+        auto output = context.memory_at(rnode.output());
+
+        auto output_type = rnode.output().type();
+        switch (output_type)
+        {
+        case dt_float32:
+            kernels::sigmoid(input.buffer().as_span<float>().data(), output.buffer().as_span<float>().data(), input.shape(),
+                input.strides(), output.strides())
+                .unwrap_or_throw();
+            break;
+        default:
+            std::cerr << "unsupported dtype for sigmoid: " + std::string(datatype_names(output_type));
+        }
+    });
+
     register_evaluator(op_slice, [](ir::node &node, function_evaluate_context &context) {
         auto &rnode = static_cast<slice &>(node);
 
@@ -463,6 +558,9 @@ void register_neutral_evaluators()
             break;
         case unary_log:
             unary([](auto a) { return logf(a); });
+            break;
+        case unary_logical_not:
+            unary([](auto a) { return !a; });
             break;
         case unary_neg:
             unary([](auto a) { return -a; });
@@ -608,6 +706,11 @@ void register_neutral_evaluators()
         {
         case dt_float32:
             kernels::cumsum(input.buffer().as_span<float>().data(), output.buffer().as_span<float>().data(),
+                input.shape(), rnode.axis(), rnode.exclusive(), rnode.reverse())
+                .unwrap_or_throw();
+            break;
+        case dt_int32:
+            kernels::cumsum(input.buffer().as_span<int32_t>().data(), output.buffer().as_span<int32_t>().data(),
                 input.shape(), rnode.axis(), rnode.exclusive(), rnode.reverse())
                 .unwrap_or_throw();
             break;

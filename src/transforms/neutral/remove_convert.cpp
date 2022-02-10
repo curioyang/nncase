@@ -150,6 +150,7 @@ void remove_concat_convert::process(transform_context &context)
         auto &output = *context.inputs[i]->connection();
         new_concat->input_at(i).connect(output);
     }
+
     for (auto &in : dup(inputs))
         in->connect(new_concat->output());
 }

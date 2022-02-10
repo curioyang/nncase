@@ -24,9 +24,11 @@
 #include <nncase/ir/ops/copy.h>
 #include <nncase/ir/ops/cumsum.h>
 #include <nncase/ir/ops/dequantize.h>
+#include <nncase/ir/ops/equal.h>
 #include <nncase/ir/ops/gather.h>
 #include <nncase/ir/ops/gather_nd.h>
 #include <nncase/ir/ops/hardmax.h>
+#include <nncase/ir/ops/matmul.h>
 #include <nncase/ir/ops/onehot.h>
 #include <nncase/ir/ops/pad.h>
 #include <nncase/ir/ops/quantize.h>
@@ -37,6 +39,8 @@
 #include <nncase/ir/ops/reduce_prod.h>
 #include <nncase/ir/ops/reduce_window2d.h>
 #include <nncase/ir/ops/resize_image.h>
+#include <nncase/ir/ops/roi_align.h>
+#include <nncase/ir/ops/sigmoid.h>
 #include <nncase/ir/ops/slice.h>
 #include <nncase/ir/ops/table_lookup.h>
 #include <nncase/ir/ops/ternary.h>

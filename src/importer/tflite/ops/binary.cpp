@@ -119,6 +119,7 @@ DEFINE_TFLITE_LOWER(SUB)
 void tflite_importer::convert_binary(const tflite::Operator &op, binary_op_t binary_op, tflite::ActivationFunctionType activation)
 {
     auto &input_a = get_tensor(op.inputs(), 0);
+    auto input_type = to_data_type(input_a.type());
     auto &input_b = get_tensor(op.inputs(), 1);
     auto &output = get_tensor(op.outputs(), 0);
 
@@ -128,7 +129,7 @@ void tflite_importer::convert_binary(const tflite::Operator &op, binary_op_t bin
     dequantize *input_a_dequant, *input_b_dequant;
     quantize *output_quant;
     // input_a dequantize
-    if (input_a.type() != tflite::TensorType_FLOAT32)
+    if (input_type != dt_float32)
     {
         quant_param_t input_a_paras = to_quant_param(input_a.quantization());
         input_a_dequant = graph_.emplace<dequantize>(to_data_type(input_a.type()), get_shape(input_a.shape()), dt_float32, input_a_paras);
@@ -142,7 +143,7 @@ void tflite_importer::convert_binary(const tflite::Operator &op, binary_op_t bin
     }
 
     //input_b dequantize
-    if (input_b.type() != tflite::TensorType_FLOAT32)
+    if (input_type != dt_float32)
     {
         quant_param_t input_b_paras = to_quant_param(input_b.quantization());
         input_b_dequant = graph_.emplace<dequantize>(to_data_type(input_b.type()), get_shape(input_b.shape()), dt_float32, input_b_paras);
