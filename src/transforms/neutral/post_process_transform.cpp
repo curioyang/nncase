@@ -30,7 +30,7 @@ using namespace nncase;
 using namespace nncase::ir;
 using namespace nncase::ir::transforms;
 
-void post_process_transform::run_core(graph& graph, [[maybe_unused]] nncase::target& target, [[maybe_unused]] const run_pass_options& options)
+void post_process_transform::run_core(graph &graph, [[maybe_unused]] nncase::target &target, [[maybe_unused]] const run_pass_options &options)
 {
     for (auto out_node : dup(graph.outputs()))
     {
@@ -39,14 +39,14 @@ void post_process_transform::run_core(graph& graph, [[maybe_unused]] nncase::tar
             auto old_output = out_node->input().connection();
             if (output_layout_ != real_outlayout_)
             {
-                transpose* tp = nullptr;
+                transpose *tp = nullptr;
                 if (output_layout_ == "NCHW" && real_outlayout_ == "NHWC")
                 {
-                    tp = graph.emplace<transpose>(old_output->type(), old_output->shape(), axis_t{ 0, 3, 1, 2 });
+                    tp = graph.emplace<transpose>(old_output->type(), old_output->shape(), axis_t { 0, 3, 1, 2 });
                 }
                 else if (output_layout_ == "NHWC" && real_outlayout_ == "NCHW")
                 {
-                    tp = graph.emplace<transpose>(old_output->type(), old_output->shape(), axis_t{ 0, 2, 3, 1 });
+                    tp = graph.emplace<transpose>(old_output->type(), old_output->shape(), axis_t { 0, 2, 3, 1 });
                 }
                 else
                 {
