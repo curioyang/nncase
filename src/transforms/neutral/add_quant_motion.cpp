@@ -27,7 +27,7 @@ bool add_input_dequantize_transform::on_try_match(node &node, transform_context 
 {
     if (auto in_node = node_cast<input_node>(node))
     {
-        if (in_node->output().type() == dt_float32)
+        if (in_node->output().type() == dt_float32 && (input_type_ == dt_uint8 || input_type_ == dt_int8))
         {
             context.outputs.emplace_back(&in_node->output());
             context.matched_nodes.emplace_back(in_node);
@@ -43,7 +43,6 @@ void add_input_dequantize_transform::process(transform_context &context)
     auto old_in = node_cast<input_node>(*context.matched_nodes[0]);
 
     auto &quantizer = *context.quantizer;
-    assert(input_type_ == dt_uint8 || input_type_ == dt_int8);
     size_t bits = 8;
     auto qm = input_type_ == dt_uint8 ? quantizer::quant_mode::unsigned_mode : quantizer::quant_mode::signed_asymmetric_mode;
     auto old_range = quantizer.get(old_in->output());
