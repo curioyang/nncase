@@ -56,7 +56,7 @@ DEFINE_TFLITE_LOWER(STRIDED_SLICE)
     std::vector<node *> node_list;
     for (int i = 0; i < begin.size(); i++)
     {
-        if (begin[i] < 0)
+        if (begin[i] < 0 && (int32_t)(get_shape(input.shape())[i] + begin[i] + 1 > end[i]))
         {
             xt::svector<padding> paddings;
             axis_t new_begin;
