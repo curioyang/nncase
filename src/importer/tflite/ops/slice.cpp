@@ -66,10 +66,11 @@ DEFINE_TFLITE_LOWER(STRIDED_SLICE)
                 if (i == j)
                 {
                     paddings.push_back(padding { 0, (int32_t)(get_shape(input.shape())[i]) });
-                    new_begin.push_back((int32_t)(get_shape(input.shape())[i]));
+                    new_begin.push_back((int32_t)(get_shape(input.shape())[i]) - 1 - begin[i]);
                     new_end.push_back((int32_t)(get_shape(input.shape())[i]) * 2);
-                    begin[i] += ((int32_t)(get_shape(input.shape())[i]) + 1);
-                    std::swap(begin[i], end[i]);
+                    end[i] = (int32_t)(get_shape(input.shape())[i]) + begin[i] + 1 - end[i];
+                    begin[i] = 0 - 1 - begin[i];
+                    // std::swap(begin[i], end[i]);
                 }
                 else
                 {
