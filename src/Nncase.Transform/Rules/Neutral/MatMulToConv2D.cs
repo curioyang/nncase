@@ -42,9 +42,9 @@ public sealed partial class MatMulToConv2D : IRewriteRule
           if_reshape,
           w_reshape,
           Tensor.FromScalar(0.0f, aShape[1].FixedValue),
-          Tensor.FromScalar(0, new[] { 2, 2 }),
           new int[] { 1, 1 },
-          new int[] { 1, 1 },
+          new int[] { 0, 0, },
+          new int[] { 0, 0 },
           PadMode.Constant,
           1);
     }

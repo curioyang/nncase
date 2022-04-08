@@ -5,7 +5,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Nncase.IR;
 using Nncase.IR.F;
+using Nncase.IR.NN;
 using Nncase.Transform;
 using Nncase.Transform.Rules.Neutral;
 using Xunit;
@@ -40,11 +42,16 @@ public class UnitTestMatMulToConv2D
         var rootPre = Math.MatMul(a, b);
         var rootPost = CompilerServices.Rewrite(rootPre, new IRewriteRule[]
         {
-            new FoldConstCall(),
-            new FusePadConv2d()
+            // new FoldConstCall(),
+            new MatMulToConv2D()   
         }, caseOptions);
 
         Assert.NotEqual(rootPre, rootPost);
+        // rootPost == Conv2D()
+        // if (rootPost is Call postCall)
+        // {
+        //     Assert.True(postCall.Target is Conv2D);
+        // }
         Assert.Equal(CompilerServices.Evaluate(rootPre), CompilerServices.Evaluate(rootPost));
     }
 }
