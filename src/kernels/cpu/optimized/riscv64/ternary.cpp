@@ -103,12 +103,43 @@ void ternary_vec(const float *input_a, int input_a_len, const float *input_b, in
         : "t0", "t1", "a0", "a1", "a2", "a3", "a4", "a5", "ft0", "v0", "v8", "v16", "v24");
 }
 
-template <>
-result<void> optimized::ternary<float>(const float *input_a, const float *input_b, const float *input_c, float *output,
+// template <>
+// result<void> optimized::ternary<float>(const float *input_a, const float *input_b, const float *input_c, float *output,
+// const runtime_shape_t &in_a_shape, [[maybe_unused]] const runtime_shape_t &in_a_strides, const runtime_shape_t &in_b_shape,
+// [[maybe_unused]] const runtime_shape_t &in_b_strides, const runtime_shape_t &in_c_shape, [[maybe_unused]] const runtime_shape_t &in_c_strides,
+// [[maybe_unused]] const runtime_shape_t &out_strides)noexcept
+// {
+// int len_a = 1;
+// for(int i = 0; i < (int)in_a_shape.size(); ++i)
+// {
+// len_a *= in_a_shape[i];
+// }
+// int len_b = 1;
+// for(int i = 0; i < (int)in_b_shape.size(); ++i)
+// {
+// len_b *= in_b_shape[i];
+// }
+// int len_c = 1;
+// for(int i = 0; i < (int)in_c_shape.size(); ++i)
+// {
+// len_c *= in_c_shape[i];
+// }
+// const auto out_shape = kernels::detail::get_binary_output_shape(kernels::detail::get_binary_output_shape(in_a_shape, in_b_shape), in_c_shape);
+// int len_out = 1;
+// for(int i = 0; i < (int)out_shape.size(); ++i)
+// {
+// len_out *= out_shape[i];
+// }
+// ternary_vec(input_a, len_a, input_b, len_b, input_c, len_c, output, len_out);
+// return ok();
+// }
+
+result<void> tenary_impl(const float *input_a, const float *input_b, const float *input_c, float *output,
     const runtime_shape_t &in_a_shape, [[maybe_unused]] const runtime_shape_t &in_a_strides, const runtime_shape_t &in_b_shape,
     [[maybe_unused]] const runtime_shape_t &in_b_strides, const runtime_shape_t &in_c_shape, [[maybe_unused]] const runtime_shape_t &in_c_strides,
-    [[maybe_unused]] const runtime_shape_t &out_strides) noexcept
+    [[maybe_unused]] const runtime_shape_t &out_strides)
 {
+
     int len_a = 1;
     for (int i = 0; i < (int)in_a_shape.size(); ++i)
     {
@@ -134,15 +165,6 @@ result<void> optimized::ternary<float>(const float *input_a, const float *input_
     return ok();
 }
 
-// result<void> ternary_impl(const float *input_a, const float *input_b, const float *input_c, float *output,
-// const runtime_shape_t &in_a_shape, const runtime_shape_t &in_a_strides, const runtime_shape_t &in_b_shape,
-// const runtime_shape_t &in_b_strides, const runtime_shape_t &in_c_shape, const runtime_shape_t &in_c_strides,
-// const runtime_shape_t &out_strides)
-// {
-
-// return ok();
-// }
-
 #endif
 
 template result<void> optimized::ternary<float>(const float *input_a, const float *input_b, const float *input_c, float *output,
@@ -150,10 +172,10 @@ template result<void> optimized::ternary<float>(const float *input_a, const floa
     const runtime_shape_t &in_b_strides, const runtime_shape_t &in_c_shape, const runtime_shape_t &in_c_strides,
     const runtime_shape_t &out_strides) noexcept;
 
-template result<void> optimized::ternary<int64_t>(const float *input_a, const int64_t *input_b, const int64_t *input_c, int64_t *output,
-    const runtime_shape_t &in_a_shape, const runtime_shape_t &in_a_strides, const runtime_shape_t &in_b_shape,
-    const runtime_shape_t &in_b_strides, const runtime_shape_t &in_c_shape, const runtime_shape_t &in_c_strides,
-    const runtime_shape_t &out_strides) noexcept;
+// template result<void> optimized::ternary<int64_t>(const float *input_a, const int64_t *input_b, const int64_t *input_c, int64_t *output,
+// const runtime_shape_t &in_a_shape, const runtime_shape_t &in_a_strides, const runtime_shape_t &in_b_shape,
+// const runtime_shape_t &in_b_strides, const runtime_shape_t &in_c_shape, const runtime_shape_t &in_c_strides,
+// const runtime_shape_t &out_strides) noexcept;
 
 template <typename T>
 result<void> optimized::ternary(const float *input_a, const T *input_b, const T *input_c, T *output,
@@ -161,9 +183,9 @@ result<void> optimized::ternary(const float *input_a, const T *input_b, const T 
     const runtime_shape_t &in_b_strides, const runtime_shape_t &in_c_shape, const runtime_shape_t &in_c_strides,
     const runtime_shape_t &out_strides) noexcept
 {
-    // #if __riscv_vector
-    // return tenary_impl(input_a, input_b, input_c, output, in_a_shape, in_a_strides, in_b_shape, in_b_strides, in_c_shape, in_c_strides, out_strides);
-    // #else
+#if __riscv_vector
+    return tenary_impl(input_a, input_b, input_c, output, in_a_shape, in_a_strides, in_b_shape, in_b_strides, in_c_shape, in_c_strides, out_strides);
+#else
     return cpu::reference::ternary(input_a, input_b, input_c, output, in_a_shape, in_a_strides, in_b_shape, in_b_strides, in_c_shape, in_c_strides, out_strides);
-    // #endif
+#endif
 }
